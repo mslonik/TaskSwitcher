@@ -15,12 +15,7 @@ ListLines, 		Off
 ;po resecie uzytkownik oznaczy unikalne okna i okna zdublowane?
 
 global 	v_CurrWindow 	:= 0
-	,	AppVersion	:= "0.9.0"
-	,	v_NoClass		:= 0
-	,	v_WindowTitle	:= ""
-	,	v_WindowClass	:= ""
-	,	a_WTitle_WClass	:= {}	;global associative array
-	,	v_TotalWindows := F_HowManyWindows()
+	,	AppVersion	:= "0.9.1"
 	,	a_SwitchOrder	:= 	{1: 	"1"
 					,	2:	"21"
 					,	3:	"22"
@@ -31,108 +26,45 @@ global 	v_CurrWindow 	:= 0
 					,	8:	"6" ;KeePass
 					,	9:	"7"	;Code
 					,	10:	"8"} ;ahk help
-	,	key 		:= 0
-	,	value 	:= ""
-	,	first	:= 0
-	,	second	:= 0					
-	,	length	:= 0
+	,	v_TotalWindows := SubStr(a_SwitchOrder[a_SwitchOrder.Count()], 1, 1)
 
+; end of initialization
 LWin & LAlt::
 	++v_CurrWindow
-	key := a_SwitchOrder[v_CurrWindow]
-	value := StrLen(a_SwitchOrder[v_CurrWindow])
-	if (StrLen(a_SwitchOrder[v_CurrWindow]) = 1)
-	{
-		Send, % "{LWin Down}" . a_SwitchOrder[v_CurrWindow] . "{LWin Up}"
-		return
-	}
-	length := StrLen(a_SwitchOrder[v_CurrWindow])
-	if (length = 2)
-	{
-		first := SubStr(a_SwitchOrder[v_CurrWindow], 1, 1)
-		second := SubStr(a_SwitchOrder[v_CurrWindow], 2, 1)
-		OutputDebug, % "first:" . A_Space . first . A_Space . "second:" . A_Space . second . "`n"
-		; Loop, % second
-		; {
-			; if (A_Index = second)
-			; {
-				; Send, % "{LWin Down}" . first . "{LWin Up}" . "{Enter}"
-				Send, % "{LWin Down}" . "{" . first . A_Space . second . "}" . "{LWin Up}{Enter}" 
-				; Send, {Enter}
-				OutputDebug, % "{LWin Down}" . "{first" . A_Space . second . "}" . "{LWin Up}" . "`n"
-				; break
-			; }
-			; else
-			; {
-				; Send, % "{LWin Down}" . "{" . first . A_Space . second . "}" . "{LWin Up}"
-				; Send, {Enter}
-				; OutputDebug, % "else {LWin Down}" . "{" . first . A_Space . second . "}" . "{LWin Up}" . "`n"
-			; }
-		; }
-	}
-	WinActivate, 	A
+	if (v_CurrWindow > v_TotalWindows) or (v_CurrWindow > 9)
+		v_CurrWindow := 1	
+	SelectWindow(v_CurrWindow)
 return
 
 LAlt & LWin Up::
 	--v_CurrWindow
-	if (StrLen(a_SwitchOrder[v_CurrWindow]) = 1)
-		Send, % "#" . a_SwitchOrder[v_CurrWindow] . "{Enter}"
-	if (StrLen(a_SwitchOrder[v_CurrWindow]) = 2)	
-		{
-			Loop, % SubStr(a_SwitchOrder[v_CurrWindow], 2, 1)
-				Send, % "#" . SubStr(a_SwitchOrder[v_CurrWindow], 1, 1)
-			Send, {Enter}
-		}
-	WinActivate, 	A
+	if (v_CurrWindow > v_TotalWindows) or (v_CurrWindow < 1)
+		v_CurrWindow := v_TotalWindows
+	SelectWindow(v_CurrWindow)
 return
 
 ; - - - - - - - BLOCK OF FUNCTIONS - BEGINNING - - - - - - - - 
-F_IfUnique()
+SelectWindow(CurrentWindow)
 {
-	global
-	local	WindowTitle	:= ""
-		,	WindowClass	:= ""
-		,	counter		:= 0
-		,	key			:= ""
-		,	value		:= ""
+	global	;global-mode of operation
+	local	key 		:= a_SwitchOrder[CurrentWindow]
+		,	length 	:= StrLen(a_SwitchOrder[CurrentWindow])
+		,	first 	:= SubStr(key, 1, 1)
+		,	second 	:= SubStr(key, 0)
 
-	WinGetTitle, 	WindowTitle, 	A
-	OutputDebug, % "WindowTitle:" . A_Space . WindowTitle . "`n"
-	WinGetClass, 	WindowClass, 	% WindowTitle
-
-	for key, value in a_WTitle_WClass
-		if (value == WindowClass)
-			counter++
-	OutputDebug, % "counter:" . A_Space . counter . "`n"
-	return counter
+	if (length = 1)
+	{
+		Send, % "{LWin Down}" . key . "{LWin Up}"
+	}
+	if (length = 2)
+	{
+		OutputDebug, % "first:" . A_Space . first . A_Space . "second:" . A_Space . second . "`n"
+		Send, % "{LWin Down}" . "{" . first . A_Space . second . "}" 
+		Sleep, 300	;yes, it is necessary
+		Send, {LWin Up}
+		OutputDebug, % "{LWin Down}" . "{first" . A_Space . second . "}" . "{LWin Up}" . "`n"
+	}
+	WinActivate, 	A
 }
 ; - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-F_HowManyWindows()
-{
-	global
-	local NoWindows 		:= 0
-		, id 			:= ""
-		, row 			:= ""
-		, WindowTitle 		:= ""
-		, HowManyWindows 	:= 0
-		, WindowClass 		:= ""
-
-	WinGet, NoWindows, List
-	Loop, % NoWindows
-	{
-		id := NoWindows%A_Index%
-		WinGetTitle, WindowTitle, ahk_id %id%
-		WinGetClass, WindowClass, % WindowTitle
-		if (WindowTitle) and (WindowTitle != "Program Manager")
-		{
-			a_WTitle_WClass[WindowTitle] := WindowClass	;key must be unique, value not necessary
-			row .= ++HowManyWindows . A_Space . WindowTitle . A_Space . "|" . A_Space . WindowClass . "`n"
-		}
-	}
-	; for key, value in a_WTitle_WClass
-		; OutputDebug, % "key:" . A_Space . key . A_Space . "|" . A_Space . "value:" . value . "`n"
-	; MsgBox, % row
-	; OutputDebug, % "How many windows:" . A_Space . HowManyWindows . "`n"
-	return HowManyWindows
-}
-; - - - - - - - BLOCK OF FUNCTIONS - END - - - - - - - - - - - 
+; - - - - - - - BLOCK OF FUNCTIONS - END - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
