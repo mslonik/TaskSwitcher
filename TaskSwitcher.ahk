@@ -10,16 +10,47 @@ SendMode, Input
 SetBatchLines, -1
 SetWorkingDir, %A_ScriptDir%
 
-global Position := 1
+global 	v_TotalWindows := F_HowManyWindows()
+	,	v_CurrWindow 	:= 0
+	,	AppVersion	:= "0.9.0"
 
 LWin & LAlt::
-	Send, % "#" . ++Position
-	OutputDebug, % Position
+	++v_CurrWindow
+	if (v_CurrWindow > v_TotalWindows) or (v_CurrWindow > 9)
+		v_CurrWindow := 1
+	Send, % "#" . v_CurrWindow
+	OutputDebug, % "up:" . A_Space . v_CurrWindow . "`n"
 	; MsgBox Prawo
 return
 
 LAlt & LWin Up::
-	Send, % "#" . --Position
-	OutputDebug, % Position
+	--v_CurrWindow
+	if (v_CurrWindow > v_TotalWindows) or (v_CurrWindow < 1)
+		v_CurrWindow := v_TotalWindows
+	Send, % "#" . v_CurrWindow
+	OutputDebug, % "down:" . A_Space . v_CurrWindow . "`n"
 	; MSgbox Lewo
 return
+
+; - - - - - - - BLOCK OF FUNCTIONS - BEGINNING - - - - - - - - 
+F_HowManyWindows()
+{
+	local NoWindows := 0
+		, id := ""
+		, row := ""
+		, WindowTitle := ""
+		, HowManyWindows := 0
+
+	WinGet, NoWindows, List
+	Loop, % NoWindows
+	{
+		id := NoWindows%A_Index%
+		WinGetTitle, WindowTitle, ahk_id %id%
+		if (WindowTitle) and (WindowTitle != "Program Manager")
+			row .= ++HowManyWindows . A_Space . WindowTitle . "`n"
+	}
+	; MsgBox, % row
+	OutputDebug, % "How many windows:" . A_Space . HowManyWindows . "`n"
+	return HowManyWindows
+}
+; - - - - - - - BLOCK OF FUNCTIONS - END - - - - - - - - - - - 
